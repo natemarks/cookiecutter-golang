@@ -7,6 +7,7 @@
   "docker_image": "ubuntu:bionic-20200630",
   "docker_build_image": "lacion/alpine-golang-buildimage",
   "docker_build_image_version": [
+    "1.14.4",
     "1.13",
     "1.12.9",
     "1.11.9"
