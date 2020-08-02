@@ -4,6 +4,12 @@
 
 Powered by [Cookiecutter](https://github.com/audreyr/cookiecutter), Cookiecutter Golang is a framework for jumpstarting production-ready go projects quickly.
 
+TODO: make tests pass (with update data test parameter)
+TODO: include structured logging
+TODO: make travios work ight off the bat
+TODO: make build to docker work
+TODO: only use 111modules
+
 ## Features
 
 - Generous `Makefile` with management commands
