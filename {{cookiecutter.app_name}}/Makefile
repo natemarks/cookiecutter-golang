@@ -54,7 +54,7 @@ release: git-status build
     done ; \
 
 test:
-	@go test -short ${PKG_LIST}
+	@go test -v ${PKG_LIST}
 
 vet:
 	@go vet ${PKG_LIST}
