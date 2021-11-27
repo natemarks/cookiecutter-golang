@@ -70,11 +70,11 @@ lint:  ##  run golint
 	done
 
 fmt: ## run gofmt
-	@go fmt -s -w .
+	@go fmt ${PKG_LIST}
 
 gocyclo: # run cyclomatic complexity check
 	go get -u github.com/fzipp/gocyclo/cmd/gocyclo
-	gocyclo -top 10
+	gocyclo -top 10 .
 
 static: goimports fmt vet lint gocyclo test
 
