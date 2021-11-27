@@ -59,12 +59,24 @@ test:
 vet:
 	@go vet ${PKG_LIST}
 
-lint:
+goimports: ## check imports
+	go get -u golang.org/x/tools/cmd/goimports
+	goimports -w .
+
+lint:  ##  run golint
+	go get -u golang.org/x/lint/golint
 	@for file in ${GO_FILES} ;  do \
 		golint $$file ; \
 	done
 
-static: vet lint test
+fmt: ## run gofmt
+	@go fmt -s -w .
+
+gocyclo: # run cyclomatic complexity check
+	go get -u github.com/fzipp/gocyclo/cmd/gocyclo
+	gocyclo -top 10
+
+static: goimports fmt vet lint gocyclo test
 
 clean:
 	-@rm ${OUT} ${OUT}-v*
