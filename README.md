@@ -1,4 +1,4 @@
-Cookiecutter template for ansible role projects
+Cookiecutter template for ansible role projects. Tested with go version 1.17
 
  - Setup a minimal project structure
  - get molecule linting and test working immediately
