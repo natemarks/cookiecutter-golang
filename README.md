@@ -1,7 +1,7 @@
 Cookiecutter template for ansible role projects. Tested with go version 1.17
 
  - Setup a minimal project structure
- - get molecule linting and test working immediately
+ - get linting and test working immediately
  - use .env to provide secure variables to test runs without leaking into the repo
  - provide testinfra example
  - provide a Makefile that useful locally and in pipelines
