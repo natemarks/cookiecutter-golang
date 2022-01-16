@@ -45,6 +45,7 @@ test: git-status static ## Run all project tests
 static: ## run  all of the static checks
 	( \
        . .venv/bin/activate; \
+       pip install pylint; \
        pylint test/*.py; \
     )
 
