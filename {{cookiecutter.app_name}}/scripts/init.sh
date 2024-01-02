@@ -7,6 +7,6 @@ git init .
 git config user.name "{{ cookiecutter.author }}"
 # shellcheck disable=SC1083
 git config user.email "{{ cookiecutter.email }}"
-git branch -m master main
 git add -A
 git commit -am 'initial'
+git branch -m master main
