@@ -2,10 +2,10 @@
 
 # Determine this makefile's path.
 # Be sure to place this BEFORE `include` directives, if any.
+SHELL := $(shell which bash)
 DEFAULT_BRANCH := main
 THIS_FILE := $(lastword $(MAKEFILE_LIST))
 PKG := github.com/{{ cookiecutter.github_user}}/{{ cookiecutter.app_name}}
-VERSION := 0.0.0
 COMMIT := $(shell git rev-parse HEAD)
 PKG_LIST := $(shell go list ${PKG}/... | grep -v /vendor/)
 GO_FILES := $(shell find . -name '*.go' | grep -v /vendor/)
@@ -20,51 +20,45 @@ DEFAULT_BRANCH := main
 help: ## Show this help.
 	@fgrep -h "##" $(MAKEFILE_LIST) | fgrep -v fgrep | sed -e 's/\\$$//' | sed -e 's/##//'
 
-clean-venv: ## re-create virtual env
-	rm -rf .venv
-	python3 -m venv .venv
-	( \
-       source .venv/bin/activate; \
-       pip install --upgrade pip setuptools; \
-    )
-
 ${EXECUTABLES}:
 	@for o in $(GOOS); do \
 	  for a in $(GOARCH); do \
         echo "$(COMMIT)/$${o}/$${a}" ; \
         mkdir -p build/$(COMMIT)/$${o}/$${a} ; \
-        echo "VERSION: $(VERSION)" > build/$(COMMIT)/$${o}/$${a}/version.txt ; \
         echo "COMMIT: $(COMMIT)" >> build/$(COMMIT)/$${o}/$${a}/version.txt ; \
         env GOOS=$${o} GOARCH=$${a} \
         go build  -v -o build/$(COMMIT)/$${o}/$${a}/$@ \
-				-ldflags="-X github.com/{{ cookiecutter.github_user }}/{{ cookiecutter.app_name }}/version.Version=${VERSION}" ${PKG}/cmd/$@; \
+				-ldflags="-X github.com/{{ cookiecutter.github_user }}/{{ cookiecutter.app_name }}/version.Version=${COMMIT}" ${PKG}/cmd/$@; \
 	  done \
     done ; \
 
 build: git-status ${EXECUTABLES}
-	rm -f build/current
-	ln -s $(CDIR)/build/$(COMMIT) $(CDIR)/build/current
+	rm -rf build/current
+	cp -R $(CDIR)/build/$(COMMIT) $(CDIR)/build/current
 
 release: git-status build
-	mkdir -p release/$(VERSION)
+	mkdir -p release/$(COMMIT)
 	@for o in $(GOOS); do \
 	  for a in $(GOARCH); do \
-        tar -C ./build/$(COMMIT)/$${o}/$${a} -czvf release/$(VERSION)/{{ cookiecutter.app_name }}_$(VERSION)_$${o}_$${a}.tar.gz . ; \
+	    cp -R scripts ./build/$(COMMIT)/$${o}/$${a} ; \
+        tar -C ./build/$(COMMIT)/$${o}/$${a} -czvf release/$(COMMIT)/{{ cookiecutter.app_name }}_$(COMMIT)_$${o}_$${a}.tar.gz . ; \
 	  done \
     done ; \
 
+
 test:
 	@go test -v ${PKG_LIST}
+#	@go test -short ${PKG_LIST}
 
 vet:
 	@go vet ${PKG_LIST}
 
 goimports: ## check imports
-	go get -d golang.org/x/tools/cmd/goimports
+	go install golang.org/x/tools/cmd/goimports@latest
 	goimports -w .
 
 lint:  ##  run golint
-	go get -d golang.org/x/lint/golint
+	go install golang.org/x/lint/golint@latest
 	@for file in ${GO_FILES} ;  do \
 		golint $$file ; \
 	done
@@ -73,26 +67,21 @@ fmt: ## run gofmt
 	@go fmt ${PKG_LIST}
 
 gocyclo: # run cyclomatic complexity check
-	go get -d github.com/fzipp/gocyclo/cmd/gocyclo
-	gocyclo -top 10 .
+	go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
+	gocyclo -over 25 .
 
-static: goimports fmt vet lint gocyclo test
 
+godeadcode: # run cyclomatic complexity check
+	go install golang.org/x/tools/cmd/deadcode@latest
+	deadcode -test github.com/natemarks/{{ cookiecutter.app_name }}/
+
+govulncheck: # run cyclomatic complexity check
+	go install golang.org/x/vuln/cmd/govulncheck@latest
+	govulncheck ./...
+
+static: goimports fmt vet lint gocyclo godeadcode govulncheck test
 clean:
 	-@rm ${OUT} ${OUT}-v*
-
-
-bump: clean-venv  ## bump version in main branch
-ifeq ($(CURRENT_BRANCH), $(DEFAULT_BRANCH))
-	( \
-	   source .venv/bin/activate; \
-	   pip install bump2version; \
-	   bump2version $(part); \
-	)
-else
-	@echo "UNABLE TO BUMP - not on Main branch"
-	$(info Current Branch: $(CURRENT_BRANCH), main: $(DEFAULT_BRANCH))
-endif
 
 
 git-status: ## require status is clean so we can use undo_edits to put things back
@@ -103,7 +92,31 @@ git-status: ## require status is clean so we can use undo_edits to put things ba
 		exit 1; \
 	fi
 
-rebase: git-status ## rebase current feature branch on to the default branch
-	git fetch && git rebase origin/$(DEFAULT_BRANCH)
+shellcheck: ## use black to format python files
+	( \
+       git ls-files '*.sh' |  xargs shellcheck --format=gcc; \
+    )
+
+docker-build: build ## create docker image with commit tag
+	( \
+	   docker build --no-cache \
+       	-t {{ cookiecutter.app_name }}:$(COMMIT) \
+       	-t {{ cookiecutter.app_name }}:latest \
+       	-f Dockerfile .; \
+	)
+
+release: docker-build ## upload the latest docker image to ECR
+	( \
+	   aws ecr get-login-password --region $(AWS_REGION) | docker login --username AWS --password-stdin $(AWS_ACCOUNT_NUMBER).dkr.ecr.$(AWS_REGION).amazonaws.com; \
+	   docker tag {{ cookiecutter.app_name }}:latest $(AWS_ACCOUNT_NUMBER).dkr.ecr.$(AWS_REGION).amazonaws.com/{{ cookiecutter.app_name }}:latest; \
+	   docker push $(AWS_ACCOUNT_NUMBER).dkr.ecr.$(AWS_REGION).amazonaws.com/{{ cookiecutter.app_name }}:latest; \
+	)
+
+docker-run: ## run docker image
+	( \
+	   docker run -it --rm \
+	   	-e INTERVAL='6' \
+	   	{{ cookiecutter.app_name }} \
+	)
 
 .PHONY: build release static upload vet lint fmt gocyclo goimports test

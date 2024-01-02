@@ -42,12 +42,36 @@ test: git-status static ## Run all project tests
        python3 -m pytest -o log_cli=true -v test; \
     )
 
-static: ## run  all of the static checks
+pylint: ## run pylint on python files
 	( \
        . .venv/bin/activate; \
-       pip install pylint; \
-       pylint test/*.py; \
+       git ls-files '*.py' | xargs pylint --max-line-length=90; \
     )
+
+black: ## use black to format python files
+	( \
+       . .venv/bin/activate; \
+       git ls-files '*.py' |  xargs black --line-length=79; \
+    )
+
+black-check: ## use black to format python files
+	( \
+       . .venv/bin/activate; \
+       git ls-files '*.py' |  xargs black --check --line-length=79; \
+    )
+
+shellcheck: ## use black to format python files
+	( \
+       git ls-files '*.sh' |  xargs shellcheck --format=gcc; \
+    )
+
+unit-test: ## run test that don't require deployed resources
+	( \
+       . .venv/bin/activate; \
+       python3 -m pytest -v -m "unit" tests/; \
+    )
+
+static:  black pylint shellcheck unit-test ## run all static checks
 
 bump: ## bump version in main branch
 ifeq ($(CURRENT_BRANCH), $(MAIN_BRANCH))
