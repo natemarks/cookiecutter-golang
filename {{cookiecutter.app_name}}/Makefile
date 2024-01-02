@@ -105,7 +105,7 @@ docker-build: build ## create docker image with commit tag
        	-f Dockerfile .; \
 	)
 
-release: docker-build ## upload the latest docker image to ECR
+docker-release: docker-build ## upload the latest docker image to ECR
 	( \
 	   aws ecr get-login-password --region $(AWS_REGION) | docker login --username AWS --password-stdin $(AWS_ACCOUNT_NUMBER).dkr.ecr.$(AWS_REGION).amazonaws.com; \
 	   docker tag {{ cookiecutter.app_name }}:latest $(AWS_ACCOUNT_NUMBER).dkr.ecr.$(AWS_REGION).amazonaws.com/{{ cookiecutter.app_name }}:latest; \
