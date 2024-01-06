@@ -73,7 +73,7 @@ gocyclo: # run cyclomatic complexity check
 
 godeadcode: # run cyclomatic complexity check
 	go install golang.org/x/tools/cmd/deadcode@latest
-	deadcode -test github.com/natemarks/{{ cookiecutter.app_name }}/
+	deadcode -test github.com/natemarks/{{ cookiecutter.app_name }}/cmd/...
 
 govulncheck: # run cyclomatic complexity check
 	go install golang.org/x/vuln/cmd/govulncheck@latest
